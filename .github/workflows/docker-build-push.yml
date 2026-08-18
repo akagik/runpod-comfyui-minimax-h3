@@ -79,8 +79,42 @@ jobs:
           provenance: mode=max
           sbom: true
 
+      - name: Inspect published image
+        id: inspect
+        env:
+          IMAGE_REF: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          index_json="$(docker buildx imagetools inspect --raw "$IMAGE_REF")"
+          if jq -e '.manifests' >/dev/null <<<"$index_json"; then
+            platform_digest="$(
+              jq -r '
+                .manifests[]
+                | select(.platform.os == "linux" and .platform.architecture == "amd64")
+                | select((.annotations["vnd.docker.reference.type"] // "") != "attestation-manifest")
+                | .digest
+              ' <<<"$index_json" | head -n 1
+            )"
+            test -n "$platform_digest"
+            manifest_json="$(
+              docker buildx imagetools inspect --raw \
+                "${REGISTRY}/${IMAGE_NAME}@${platform_digest}"
+            )"
+          else
+            platform_digest='${{ steps.build.outputs.digest }}'
+            manifest_json="$index_json"
+          fi
+          compressed_bytes="$(jq '[.config.size, (.layers[].size)] | add' <<<"$manifest_json")"
+          test "$compressed_bytes" -gt 0
+          compressed_size="$(numfmt --to=iec-i --suffix=B "$compressed_bytes")"
+          echo "platform_digest=$platform_digest" >> "$GITHUB_OUTPUT"
+          echo "compressed_bytes=$compressed_bytes" >> "$GITHUB_OUTPUT"
+          echo "compressed_size=$compressed_size" >> "$GITHUB_OUTPUT"
+
       - name: Publish build summary
         run: |
           echo '### Published image' >> "$GITHUB_STEP_SUMMARY"
           echo '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}' >> "$GITHUB_STEP_SUMMARY"
-          echo 'Digest: `${{ steps.build.outputs.digest }}`' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Index digest: `${{ steps.build.outputs.digest }}`' >> "$GITHUB_STEP_SUMMARY"
+          echo 'linux/amd64 digest: `${{ steps.inspect.outputs.platform_digest }}`' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Compressed registry payload: `${{ steps.inspect.outputs.compressed_size }}` (`${{ steps.inspect.outputs.compressed_bytes }}` bytes)' >> "$GITHUB_STEP_SUMMARY"
