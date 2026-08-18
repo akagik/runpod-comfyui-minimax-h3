@@ -12,7 +12,7 @@ Reference environment: RunPod Pod `l91qdpep325vlx`, inspected read-only on
 | torchvision | 0.28.0 |
 | torchaudio | 2.11.0 |
 | triton | 3.7.1 (resolved dependency of PyTorch) |
-| C/C++ toolchain | Ubuntu 24.04 `build-essential` (required for Triton runtime JIT) |
+| C/C++ toolchain | Ubuntu 24.04 `build-essential` + `python3.12-dev` (required for Triton runtime JIT) |
 | ComfyUI | 0.30.2, commit `dec5d9450a5290bcf63430409ea41018e67f41c3` |
 | ComfyUI frontend | 1.47.12 |
 | ComfyUI workflow templates | 0.11.31 |

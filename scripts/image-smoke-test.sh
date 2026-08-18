@@ -6,6 +6,8 @@ comfyui_dir="${COMFYUI_DIR:-/opt/ComfyUI}"
 
 "$python_bin" - <<'PY'
 import importlib
+from pathlib import Path
+import sysconfig
 import torch
 
 expected = {
@@ -21,6 +23,9 @@ for name, version in expected.items():
 print("torch", torch.__version__)
 print("torch.version.cuda", torch.version.cuda)
 print("torch.cuda.is_available", torch.cuda.is_available())
+python_h = Path(sysconfig.get_path("include")) / "Python.h"
+assert python_h.is_file(), python_h
+print("python.include", python_h)
 if torch.cuda.is_available():
     tensor = (torch.zeros(8, device="cuda") + 1).sum()
     torch.cuda.synchronize()

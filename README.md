@@ -27,7 +27,7 @@ RunPod uses x86-64 Linux workers, so always build `linux/amd64`:
 ```bash
 docker build \
   --platform linux/amd64 \
-  --tag ghcr.io/akagik/runpod-comfyui-minimax-h3:0.1.1 \
+  --tag ghcr.io/akagik/runpod-comfyui-minimax-h3:0.1.2 \
   .
 ```
 
@@ -42,7 +42,7 @@ CPU-only inspection (ComfyUI generation will not work):
 ```bash
 docker run --rm \
   --entrypoint /opt/runpod-comfyui/scripts/image-smoke-test.sh \
-  ghcr.io/akagik/runpod-comfyui-minimax-h3:0.1.1
+  ghcr.io/akagik/runpod-comfyui-minimax-h3:0.1.2
 ```
 
 GPU Pod/UI mode with a volume mounted as `/workspace`:
@@ -55,12 +55,12 @@ docker run --rm --gpus all \
   -e REQUIRE_MINIMAX_MODELS=true \
   -p 8188:8188 \
   -v /path/to/network-volume:/workspace \
-  ghcr.io/akagik/runpod-comfyui-minimax-h3:0.1.1
+  ghcr.io/akagik/runpod-comfyui-minimax-h3:0.1.2
 ```
 
 For a RunPod Pod:
 
-- Container image: `ghcr.io/akagik/runpod-comfyui-minimax-h3:0.1.1`
+- Container image: `ghcr.io/akagik/runpod-comfyui-minimax-h3:0.1.2`
 - Network Volume mount: `/workspace`
 - HTTP port: `8188/http`
 - Optional SSH port: `22/tcp`
@@ -174,7 +174,7 @@ docker run --rm --gpus all \
   -e RUNPOD_VOLUME_ROOT=/runpod-volume \
   -p 8000:8000 \
   -v /path/to/network-volume:/runpod-volume \
-  ghcr.io/akagik/runpod-comfyui-minimax-h3:0.1.1
+  ghcr.io/akagik/runpod-comfyui-minimax-h3:0.1.2
 ```
 
 ## GHCR publish
@@ -183,8 +183,8 @@ GitHub Actions builds and pushes only `linux/amd64`. A release tag creates a
 semantic GHCR tag:
 
 ```bash
-git tag v0.1.1
-git push origin main v0.1.1
+git tag v0.1.2
+git push origin main v0.1.2
 ```
 
 The workflow authenticates with GitHub's short-lived `GITHUB_TOKEN`; no PAT,
@@ -230,9 +230,10 @@ installed.
 
 ## Known issues and remaining validation
 
-- Do not deploy `0.1.0`: a paid RTX PRO 6000 smoke test found that the image
-  omitted the C compiler required by Triton's first-use JIT. `0.1.1` includes
-  Ubuntu `build-essential` and checks for `cc` in the image smoke test.
+- Do not deploy `0.1.0` or `0.1.1`: paid RTX PRO 6000 smoke tests found that
+  Triton's first-use JIT requires both a C compiler and Python development
+  headers. `0.1.2` includes Ubuntu `build-essential` plus `python3.12-dev`, and
+  checks both `cc` and `Python.h` in the image smoke test.
 - CUDA 13/PyTorch 2.13 requires a sufficiently new NVIDIA host driver. The
   reference A100 uses driver 580.159.04. Fail the GPU smoke test rather than
   silently falling back to CPU.

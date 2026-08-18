@@ -8,7 +8,7 @@ FROM ${BASE_IMAGE}
 
 ARG COMFYUI_COMMIT=dec5d9450a5290bcf63430409ea41018e67f41c3
 ARG COMFYUI_VERSION=0.30.2
-ARG IMAGE_VERSION=0.1.1
+ARG IMAGE_VERSION=0.1.2
 
 LABEL org.opencontainers.image.title="RunPod ComfyUI MiniMax H3 worker" \
       org.opencontainers.image.description="Model-free ComfyUI MiniMax H3 Pod and RunPod Serverless image" \
@@ -53,6 +53,7 @@ RUN apt-get update \
        libxrender1 \
        openssh-server \
        python3.12 \
+       python3.12-dev \
        python3.12-venv \
        tini \
     && python3.12 -m venv "${VIRTUAL_ENV}" \
