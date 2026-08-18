@@ -1,0 +1,120 @@
+{
+  "2": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "minimax_h3_video_vae_fp16.safetensors"
+    }
+  },
+  "3": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "minimax_h3_audio_vae_fp32.safetensors"
+    }
+  },
+  "4": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "5": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+      "device": "default",
+      "type": "minimax"
+    }
+  },
+  "6": {
+    "class_type": "MiniMaxH3ReferenceToVideo",
+    "inputs": {
+      "audio_vae": ["3", 0],
+      "clip": ["5", 0],
+      "height": 768,
+      "length": 124,
+      "prompt": "[reference generation] <Picture 1> is fully preserved. A single static-camera shot with subtle natural idle movement, no dialogue, no text, no subtitles, no logos, no watermark.",
+      "ref_image_size": "match",
+      "ref_images.ref_image_0": ["reference", 0],
+      "vae": ["2", 0],
+      "width": 1344
+    }
+  },
+  "7": {
+    "class_type": "RandomNoise",
+    "inputs": {
+      "noise_seed": 1
+    }
+  },
+  "8": {
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "res_multistep"
+    }
+  },
+  "9": {
+    "class_type": "BasicScheduler",
+    "inputs": {
+      "denoise": 1.0,
+      "model": ["4", 0],
+      "scheduler": "beta",
+      "steps": 20
+    }
+  },
+  "10": {
+    "class_type": "BasicGuider",
+    "inputs": {
+      "conditioning": ["6", 0],
+      "model": ["4", 0]
+    }
+  },
+  "11": {
+    "class_type": "SamplerCustomAdvanced",
+    "inputs": {
+      "guider": ["10", 0],
+      "latent_image": ["6", 1],
+      "noise": ["7", 0],
+      "sampler": ["8", 0],
+      "sigmas": ["9", 0]
+    }
+  },
+  "12": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["11", 0],
+      "vae": ["2", 0]
+    }
+  },
+  "13": {
+    "class_type": "VAEDecodeAudio",
+    "inputs": {
+      "samples": ["11", 0],
+      "vae": ["3", 0]
+    }
+  },
+  "14": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "audio": ["13", 0],
+      "bit_depth": 8,
+      "fps": 24.0,
+      "images": ["12", 0]
+    }
+  },
+  "15": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "codec": "auto",
+      "filename_prefix": "video/minimax-h3-r2va",
+      "format": "mp4",
+      "video": ["14", 0]
+    }
+  },
+  "reference": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "reference.png"
+    }
+  }
+}
+

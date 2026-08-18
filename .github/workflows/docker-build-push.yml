@@ -1,0 +1,86 @@
+name: Build and publish container
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  attestations: write
+  id-token: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/runpod-comfyui-minimax-h3
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Validate source tree
+        run: |
+          set -euo pipefail
+          test -f Dockerfile
+          test -f requirements.lock.txt
+          test -f worker/handler.py
+          test -f custom_nodes/minimax_h3_flref_audio.py
+          python -m json.tool workflows/minimax_h3_r2va_api_1344x768.json >/dev/null
+          python -m py_compile worker/handler.py
+          python -m unittest discover -s tests
+          if find . -type f \( -name '*.safetensors' -o -name '*.ckpt' -o -name '*.gguf' -o -name '*.mp4' -o -name '*.png' \) -print -quit | grep -q .; then
+            echo 'Forbidden model/media file found in Docker source' >&2
+            exit 1
+          fi
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=sha-
+            type=raw,value=edge,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build and push linux/amd64 image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: mode=max
+          sbom: true
+
+      - name: Publish build summary
+        run: |
+          echo '### Published image' >> "$GITHUB_STEP_SUMMARY"
+          echo '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Digest: `${{ steps.build.outputs.digest }}`' >> "$GITHUB_STEP_SUMMARY"

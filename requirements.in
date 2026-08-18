@@ -1,0 +1,53 @@
+# Direct runtime requirements reconstructed from the working A100 worker.
+# Transitive versions are resolved into requirements.lock.txt for linux/amd64.
+
+# GPU stack. PyPI's torch 2.13.0 wheel uses CUDA 13 and is the exact version
+# observed on worker-03.
+pip==26.1.2
+setuptools==84.0.0
+uv==0.8.13
+wheel==0.46.3
+torch==2.13.0
+torchvision==0.28.0
+torchaudio==2.11.0
+
+# ComfyUI 0.30.2 direct dependencies, pinned to the versions observed on the
+# working worker wherever the project exposes a runtime package.
+comfyui-frontend-package==1.47.12
+comfyui-workflow-templates==0.11.31
+comfyui-embedded-docs==0.5.9
+torchsde==0.2.6
+numpy==2.5.1
+einops==0.8.2
+transformers==5.14.1
+huggingface-hub==1.27.0
+tokenizers==0.22.2
+sentencepiece==0.2.2
+safetensors==0.8.0
+aiohttp==3.14.3
+yarl==1.24.5
+PyYAML==6.0.3
+Pillow==12.3.0
+scipy==1.18.0
+tqdm==4.70.0
+psutil==7.2.2
+alembic==1.19.1
+SQLAlchemy==2.0.51
+filelock==3.32.2
+av==18.0.0
+comfy-kitchen==0.2.26
+comfy-aimdo==0.4.11
+requests==2.34.2
+simpleeval==1.0.7
+blake3==1.0.9
+kornia==0.8.3
+spandrel==0.4.2
+pydantic==2.13.4
+pydantic-settings==2.15.0
+PyOpenGL==3.1.10
+comfy-angle==0.1.0
+
+# RunPod queue worker. 1.7.12 is the version pinned by official
+# runpod-workers/worker-comfyui 5.8.7.
+runpod==1.7.12
+websocket-client==1.9.0

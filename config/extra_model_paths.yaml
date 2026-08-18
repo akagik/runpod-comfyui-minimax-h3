@@ -1,0 +1,34 @@
+# Both roots are declared so the same image works unchanged on:
+#   RunPod Serverless: /runpod-volume
+#   RunPod Pod:        /workspace
+# Missing roots are harmless. Models are never copied into the image.
+runpod_serverless:
+  base_path: /runpod-volume
+  checkpoints: models/checkpoints/
+  clip: models/clip/
+  clip_vision: models/clip_vision/
+  configs: models/configs/
+  controlnet: models/controlnet/
+  diffusion_models: models/diffusion_models/
+  embeddings: models/embeddings/
+  loras: models/loras/
+  text_encoders: models/text_encoders/
+  unet: models/unet/
+  upscale_models: models/upscale_models/
+  vae: models/vae/
+
+runpod_pod:
+  base_path: /workspace
+  checkpoints: models/checkpoints/
+  clip: models/clip/
+  clip_vision: models/clip_vision/
+  configs: models/configs/
+  controlnet: models/controlnet/
+  diffusion_models: models/diffusion_models/
+  embeddings: models/embeddings/
+  loras: models/loras/
+  text_encoders: models/text_encoders/
+  unet: models/unet/
+  upscale_models: models/upscale_models/
+  vae: models/vae/
+
