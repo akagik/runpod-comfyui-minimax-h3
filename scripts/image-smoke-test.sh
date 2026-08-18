@@ -29,6 +29,8 @@ PY
 
 test -f "$comfyui_dir/main.py"
 test -f "$comfyui_dir/custom_nodes/minimax_h3_flref_audio.py"
+command -v cc
+cc --version | head -1
 ffmpeg -version | head -1
 python -m pip check
 
@@ -38,4 +40,3 @@ if find "$comfyui_dir/models" -type f -size +1M -print -quit | grep -q .; then
 fi
 
 echo "image smoke test: OK"
-
