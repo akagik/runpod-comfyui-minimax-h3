@@ -35,7 +35,7 @@ class HandlerInputTests(unittest.TestCase):
         with self.assertRaises(handler.WorkerInputError):
             handler._decode_image("not base64!")
 
-    def test_volume_input_is_symlinked_and_source_survives_cleanup(self):
+    def test_volume_input_is_copied_and_source_survives_cleanup(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             volume = root / "volume"
@@ -56,7 +56,9 @@ class HandlerInputTests(unittest.TestCase):
                     }
                 )
                 self.assertEqual(len(staged), 1)
-                self.assertTrue(staged[0].is_symlink())
+                self.assertTrue(staged[0].is_file())
+                self.assertFalse(staged[0].is_symlink())
+                self.assertEqual(staged[0].read_bytes(), b"png")
                 handler._cleanup_staged(staged)
                 self.assertFalse(staged[0].exists())
                 self.assertTrue(source.is_file())

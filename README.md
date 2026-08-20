@@ -13,8 +13,9 @@ encoder, VAE, input media, output media, Hugging Face cache, or secret.
 ## Status and scope
 
 Phase 1 (reproducible ComfyUI runtime) and the Phase 2 queue handler are in
-this repository. Before production rollout, the published image still needs
-one paid GPU smoke test as a normal Pod and one Serverless endpoint test.
+this repository. The image has passed a paid normal-Pod MiniMax H3 generation
+test and an authenticated A100 Serverless endpoint smoke test. Full production
+rollout still needs manager integration and workload-specific capacity tests.
 
 The reference Pod was inspected read-only. Dockerization did not stop,
 restart, upgrade, or modify its ComfyUI process, venv, Network Volume, models,
@@ -27,7 +28,7 @@ RunPod uses x86-64 Linux workers, so always build `linux/amd64`:
 ```bash
 docker build \
   --platform linux/amd64 \
-  --tag ghcr.io/akagik/runpod-comfyui-minimax-h3:0.1.3 \
+  --tag ghcr.io/akagik/runpod-comfyui-minimax-h3:0.1.4 \
   .
 ```
 
@@ -42,7 +43,7 @@ CPU-only inspection (ComfyUI generation will not work):
 ```bash
 docker run --rm \
   --entrypoint /opt/runpod-comfyui/scripts/image-smoke-test.sh \
-  ghcr.io/akagik/runpod-comfyui-minimax-h3:0.1.3
+  ghcr.io/akagik/runpod-comfyui-minimax-h3:0.1.4
 ```
 
 GPU Pod/UI mode with a volume mounted as `/workspace`:
@@ -55,12 +56,12 @@ docker run --rm --gpus all \
   -e REQUIRE_MINIMAX_MODELS=true \
   -p 8188:8188 \
   -v /path/to/network-volume:/workspace \
-  ghcr.io/akagik/runpod-comfyui-minimax-h3:0.1.3
+  ghcr.io/akagik/runpod-comfyui-minimax-h3:0.1.4
 ```
 
 For a RunPod Pod:
 
-- Container image: `ghcr.io/akagik/runpod-comfyui-minimax-h3:0.1.3`
+- Container image: `ghcr.io/akagik/runpod-comfyui-minimax-h3:0.1.4`
 - Network Volume mount: `/workspace`
 - HTTP port: `8188/http`
 - Optional SSH port: `22/tcp`
@@ -174,7 +175,13 @@ Pod or the Network Volume S3-compatible API.
 
 Small references can instead be sent in `input.images` as
 `{"name":"reference.png","image":"<base64>"}`. The default decoded limit is
-20 MiB (`MAX_INPUT_BYTES`). `volume_inputs` is preferred.
+20 MiB (`MAX_INPUT_BYTES`). `volume_inputs` is preferred for files already on
+the attached volume. The handler copies each selected file into the
+worker-local ComfyUI input directory and removes only that temporary copy when
+the job ends. It never modifies or deletes the source on the Network Volume.
+This copy is required because ComfyUI rejects symlinks whose resolved path is
+outside the configured input directory. Image 0.1.3 used such symlinks and must
+not be used with `volume_inputs`.
 
 ### Local queue-handler test
 
@@ -188,7 +195,7 @@ docker run --rm --gpus all \
   -e RUNPOD_VOLUME_ROOT=/runpod-volume \
   -p 8000:8000 \
   -v /path/to/network-volume:/runpod-volume \
-  ghcr.io/akagik/runpod-comfyui-minimax-h3:0.1.3
+  ghcr.io/akagik/runpod-comfyui-minimax-h3:0.1.4
 ```
 
 ## GHCR publish
@@ -197,8 +204,8 @@ GitHub Actions builds and pushes only `linux/amd64`. A release tag creates a
 semantic GHCR tag:
 
 ```bash
-git tag v0.1.3
-git push origin main v0.1.3
+git tag v0.1.4
+git push origin main v0.1.4
 ```
 
 The workflow authenticates with GitHub's short-lived `GITHUB_TOKEN`; no PAT,

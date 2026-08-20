@@ -12,6 +12,7 @@ import binascii
 import json
 import os
 from pathlib import Path
+import shutil
 import time
 from typing import Any
 import uuid
@@ -133,7 +134,10 @@ def _stage_inputs(job_input: dict[str, Any]) -> list[Path]:
             if destination.exists() or destination.is_symlink():
                 raise WorkerInputError(f"Input destination already exists: {destination_name}")
             destination.parent.mkdir(parents=True, exist_ok=True)
-            destination.symlink_to(source)
+            # ComfyUI deliberately rejects input files whose resolved path is
+            # outside its configured input directory. Network Volume inputs
+            # therefore need a worker-local copy rather than a symlink.
+            shutil.copy2(source, destination)
             staged.append(destination)
 
         return staged

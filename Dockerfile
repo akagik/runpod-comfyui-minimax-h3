@@ -8,7 +8,7 @@ FROM ${BASE_IMAGE}
 
 ARG COMFYUI_COMMIT=dec5d9450a5290bcf63430409ea41018e67f41c3
 ARG COMFYUI_VERSION=0.30.2
-ARG IMAGE_VERSION=0.1.3
+ARG IMAGE_VERSION=0.1.4
 
 LABEL org.opencontainers.image.title="RunPod ComfyUI MiniMax H3 worker" \
       org.opencontainers.image.description="Model-free ComfyUI MiniMax H3 Pod and RunPod Serverless image" \
