@@ -63,7 +63,26 @@ class HandlerInputTests(unittest.TestCase):
             finally:
                 handler.VOLUME_ROOT, handler.INPUT_ROOT = old_volume, old_input
 
+    def test_diagnostics_does_not_require_a_workflow(self):
+        original_wait = handler._wait_for_comfyui
+        original_diagnostics = handler._runtime_diagnostics
+        handler._wait_for_comfyui = lambda: None
+        handler._runtime_diagnostics = lambda: {
+            "operation": "diagnostics",
+            "comfyui_ready": True,
+        }
+        try:
+            result = handler.handler({"id": "job-1", "input": {"operation": "diagnostics"}})
+            self.assertEqual(result["operation"], "diagnostics")
+            self.assertTrue(result["comfyui_ready"])
+        finally:
+            handler._wait_for_comfyui = original_wait
+            handler._runtime_diagnostics = original_diagnostics
+
+    def test_rejects_unknown_operation(self):
+        with self.assertRaises(handler.WorkerInputError):
+            handler.handler({"input": {"operation": "delete-everything"}})
+
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -32,6 +32,7 @@ READY_TIMEOUT = int(os.environ.get("COMFY_READY_TIMEOUT_SECONDS", "300"))
 JOB_TIMEOUT = int(os.environ.get("COMFY_JOB_TIMEOUT_SECONDS", "7200"))
 POLL_SECONDS = float(os.environ.get("COMFY_POLL_SECONDS", "1"))
 MAX_INPUT_BYTES = int(os.environ.get("MAX_INPUT_BYTES", str(20 * 1024 * 1024)))
+IMAGE_VERSION = os.environ.get("RUNPOD_COMFYUI_IMAGE_VERSION", "unknown")
 
 
 class WorkerInputError(ValueError):
@@ -272,13 +273,71 @@ def _cgroup_memory() -> dict[str, str | None]:
     }
 
 
+def _runtime_diagnostics() -> dict[str, Any]:
+    """Return bounded, non-secret runtime information for a paid smoke test."""
+    import torch
+
+    required_models = [
+        "models/diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+        "models/text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+        "models/vae/minimax_h3_video_vae_fp16.safetensors",
+        "models/vae/minimax_h3_audio_vae_fp32.safetensors",
+    ]
+    models = []
+    for relative_name in required_models:
+        path = _safe_child(VOLUME_ROOT, relative_name)
+        models.append(
+            {
+                "path": relative_name,
+                "exists": path.is_file(),
+                "size_bytes": path.stat().st_size if path.is_file() else None,
+            }
+        )
+
+    cuda_available = torch.cuda.is_available()
+    gpu: dict[str, Any] = {
+        "cuda_available": cuda_available,
+        "device_count": torch.cuda.device_count(),
+        "torch_version": torch.__version__,
+        "torch_cuda_version": torch.version.cuda,
+    }
+    if cuda_available:
+        properties = torch.cuda.get_device_properties(0)
+        gpu.update(
+            {
+                "name": properties.name,
+                "total_memory_bytes": properties.total_memory,
+                "compute_capability": f"{properties.major}.{properties.minor}",
+            }
+        )
+
+    return {
+        "operation": "diagnostics",
+        "image_version": IMAGE_VERSION,
+        "comfyui_ready": True,
+        "gpu": gpu,
+        "network_volume": {
+            "mounted": VOLUME_ROOT.is_dir(),
+            "required_models": models,
+        },
+        "cgroup_memory": _cgroup_memory(),
+    }
+
+
 def handler(event: dict[str, Any]) -> dict[str, Any]:
     started = time.monotonic()
     job_input = event.get("input")
     if not isinstance(job_input, dict):
         raise WorkerInputError("event.input must be an object")
 
+    operation = job_input.get("operation", "generate")
+    if operation not in {"diagnostics", "generate"}:
+        raise WorkerInputError("input.operation must be diagnostics or generate")
+
     _wait_for_comfyui()
+    if operation == "diagnostics":
+        return _runtime_diagnostics()
+
     staged: list[Path] = []
     try:
         staged = _stage_inputs(job_input)
@@ -287,6 +346,8 @@ def handler(event: dict[str, Any]) -> dict[str, Any]:
         record = _wait_for_history(prompt_id)
         artifacts = _collect_artifacts(record)
         return {
+            "operation": "generate",
+            "runpod_job_id": event.get("id"),
             "prompt_id": prompt_id,
             "execution_seconds": round(time.monotonic() - started, 3),
             "artifacts": artifacts,

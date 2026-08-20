@@ -8,7 +8,7 @@ FROM ${BASE_IMAGE}
 
 ARG COMFYUI_COMMIT=dec5d9450a5290bcf63430409ea41018e67f41c3
 ARG COMFYUI_VERSION=0.30.2
-ARG IMAGE_VERSION=0.1.2
+ARG IMAGE_VERSION=0.1.3
 
 LABEL org.opencontainers.image.title="RunPod ComfyUI MiniMax H3 worker" \
       org.opencontainers.image.description="Model-free ComfyUI MiniMax H3 Pod and RunPod Serverless image" \
@@ -28,6 +28,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PATH=/opt/comfyui-venv/bin:${PATH} \
     COMFYUI_DIR=/opt/ComfyUI \
     APP_DIR=/opt/runpod-comfyui \
+    RUNPOD_COMFYUI_IMAGE_VERSION=${IMAGE_VERSION} \
     MODE_TO_RUN=serverless \
     COMFY_HOST=127.0.0.1 \
     COMFY_PORT=8188 \

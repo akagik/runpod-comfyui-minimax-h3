@@ -27,7 +27,7 @@ RunPod uses x86-64 Linux workers, so always build `linux/amd64`:
 ```bash
 docker build \
   --platform linux/amd64 \
-  --tag ghcr.io/akagik/runpod-comfyui-minimax-h3:0.1.2 \
+  --tag ghcr.io/akagik/runpod-comfyui-minimax-h3:0.1.3 \
   .
 ```
 
@@ -42,7 +42,7 @@ CPU-only inspection (ComfyUI generation will not work):
 ```bash
 docker run --rm \
   --entrypoint /opt/runpod-comfyui/scripts/image-smoke-test.sh \
-  ghcr.io/akagik/runpod-comfyui-minimax-h3:0.1.2
+  ghcr.io/akagik/runpod-comfyui-minimax-h3:0.1.3
 ```
 
 GPU Pod/UI mode with a volume mounted as `/workspace`:
@@ -55,12 +55,12 @@ docker run --rm --gpus all \
   -e REQUIRE_MINIMAX_MODELS=true \
   -p 8188:8188 \
   -v /path/to/network-volume:/workspace \
-  ghcr.io/akagik/runpod-comfyui-minimax-h3:0.1.2
+  ghcr.io/akagik/runpod-comfyui-minimax-h3:0.1.3
 ```
 
 For a RunPod Pod:
 
-- Container image: `ghcr.io/akagik/runpod-comfyui-minimax-h3:0.1.2`
+- Container image: `ghcr.io/akagik/runpod-comfyui-minimax-h3:0.1.3`
 - Network Volume mount: `/workspace`
 - HTTP port: `8188/http`
 - Optional SSH port: `22/tcp`
@@ -112,11 +112,25 @@ The queue handler accepts a ComfyUI **API-format** workflow. Because MiniMax
 H3 video jobs take minutes, use `/run`, then poll `/status`; do not depend on a
 long-lived `/runsync` request.
 
+RunPod authenticates every queue API request before it reaches the worker. Send
+`Authorization: Bearer $RUNPOD_API_KEY`; a missing or invalid header returns
+HTTP 401 and does not start a worker. Do not add the API key to the JSON payload,
+workflow, image, or logs.
+
+Before a full video test, use the bounded diagnostics operation. It starts the
+worker, verifies ComfyUI, CUDA, the Network Volume, and required model files,
+but does not load the model weights or generate media:
+
+```json
+{"input":{"operation":"diagnostics"}}
+```
+
 Example payload using an existing Network Volume reference image:
 
 ```json
 {
   "input": {
+    "operation": "generate",
     "workflow": { "replace": "with workflows/minimax_h3_r2va_api_1344x768.json" },
     "volume_inputs": [
       {
@@ -174,7 +188,7 @@ docker run --rm --gpus all \
   -e RUNPOD_VOLUME_ROOT=/runpod-volume \
   -p 8000:8000 \
   -v /path/to/network-volume:/runpod-volume \
-  ghcr.io/akagik/runpod-comfyui-minimax-h3:0.1.2
+  ghcr.io/akagik/runpod-comfyui-minimax-h3:0.1.3
 ```
 
 ## GHCR publish
@@ -183,8 +197,8 @@ GitHub Actions builds and pushes only `linux/amd64`. A release tag creates a
 semantic GHCR tag:
 
 ```bash
-git tag v0.1.2
-git push origin main v0.1.2
+git tag v0.1.3
+git push origin main v0.1.3
 ```
 
 The workflow authenticates with GitHub's short-lived `GITHUB_TOKEN`; no PAT,
