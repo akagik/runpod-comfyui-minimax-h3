@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "minimax-h3-i2va-vdn-bf16-8step",
+  "version": 1,
+  "name": "MiniMax H3 VDN BF16 8-step I2VA (experimental)",
+  "description": "ComfyUI-VDN-H3 v1.5.2 port, not the official optimized runtime. FL2VA BF16 base + BF16 Qwen; FP16 video VAE/FP32 audio VAE. VDN DMD stage, default+turbo adapters merged, strength 1, grouped attention, cache_gpu. 8 steps only; no FastH3 or Sol patch. GPU validation pending.",
+  "modelProfile": {"id": "minimax-h3-vdn-bf16-8step", "name": "VDN-H3 BF16 8-step (ComfyUI port)"},
+  "generationMode": "i2va",
+  "executionTargets": ["pod"],
+  "apiWorkflow": {
+    "1": {"class_type": "LoadImage", "inputs": {"image": "first.png"}},
+    "2": {"class_type": "VAELoader", "inputs": {"vae_name": "minimax_h3_video_vae_fp16.safetensors"}},
+    "3": {"class_type": "VAELoader", "inputs": {"vae_name": "minimax_h3_audio_vae_fp32.safetensors"}},
+    "4": {"class_type": "UNETLoader", "inputs": {"unet_name": "minimax_h3_fl2va_bf16.safetensors", "weight_dtype": "default"}},
+    "5": {"class_type": "CLIPLoader", "inputs": {"clip_name": "qwen3vl_32b_minimax_h3_bf16.safetensors", "type": "minimax", "device": "default"}},
+    "6": {"class_type": "MiniMaxH3ImageToVideo", "inputs": {"clip": ["5", 0], "vae": ["2", 0], "first_frame": ["1", 0], "prompt": "", "width": 1344, "height": 768, "length": 124}},
+    "7": {"class_type": "RandomNoise", "inputs": {"noise_seed": 2026091301}},
+    "8": {"class_type": "KSamplerSelect", "inputs": {"sampler_name": "er_sde"}},
+    "9": {"class_type": "BasicScheduler", "inputs": {"model": ["16", 0], "scheduler": "beta", "steps": 8, "denoise": 1}},
+    "10": {"class_type": "BasicGuider", "inputs": {"model": ["16", 0], "conditioning": ["6", 0]}},
+    "11": {"class_type": "SamplerCustomAdvanced", "inputs": {"noise": ["7", 0], "sampler": ["8", 0], "sigmas": ["9", 0], "guider": ["10", 0], "latent_image": ["6", 1]}},
+    "12": {"class_type": "VAEDecode", "inputs": {"samples": ["11", 0], "vae": ["2", 0]}},
+    "13": {"class_type": "VAEDecodeAudio", "inputs": {"samples": ["11", 0], "vae": ["3", 0]}},
+    "14": {"class_type": "CreateVideo", "inputs": {"images": ["12", 0], "audio": ["13", 0], "fps": 24, "bit_depth": 8}},
+    "15": {"class_type": "SaveVideo", "inputs": {"video": ["14", 0], "format": "mp4", "codec": "auto", "filename_prefix": "video/rcm/vdn-h3-bf16-8step"}},
+    "16": {"class_type": "ApplyVDNH3", "inputs": {"model": ["4", 0], "vdn_checkpoint": "stage-dmd-step-250", "apply_turbo_adapter": true, "strength": 1, "lora_mode": "merge", "branch_weights": "cache_gpu", "retain_buffers": "auto", "attention_backend": "grouped", "verbose": true}}
+  },
+  "parameters": [
+    {"key": "prompt", "label": "プロンプト", "type": "textarea", "required": true, "default": null, "options": [], "mapping": {"nodeId": "6", "input": "prompt"}},
+    {"key": "firstFrame", "label": "初期フレーム", "type": "image", "required": true, "default": null, "options": [], "mapping": {"nodeId": "1", "input": "image"}},
+    {"key": "width", "label": "幅", "type": "integer", "required": true, "default": 1344, "options": [], "mapping": {"nodeId": "6", "input": "width"}},
+    {"key": "height", "label": "高さ", "type": "integer", "required": true, "default": 768, "options": [], "mapping": {"nodeId": "6", "input": "height"}},
+    {"key": "frames", "label": "フレーム数", "type": "integer", "required": true, "default": 124, "options": [], "mapping": {"nodeId": "6", "input": "length"}},
+    {"key": "seed", "label": "Seed", "type": "integer", "required": true, "default": 2026091301, "options": [], "mapping": {"nodeId": "7", "input": "noise_seed"}},
+    {"key": "steps", "label": "Steps", "type": "integer", "required": true, "default": 8, "options": [], "mapping": {"nodeId": "9", "input": "steps"}, "description": "VDN DMD uses 8 ComfyUI steps. Do not carry the original MD's 20 steps over."},
+    {"key": "fps", "label": "FPS", "type": "number", "required": true, "default": 24, "options": [], "mapping": {"nodeId": "14", "input": "fps"}}
+  ],
+  "requiredNodeClasses": ["LoadImage", "VAELoader", "UNETLoader", "CLIPLoader", "MiniMaxH3ImageToVideo", "RandomNoise", "KSamplerSelect", "BasicScheduler", "BasicGuider", "SamplerCustomAdvanced", "VAEDecode", "VAEDecodeAudio", "CreateVideo", "SaveVideo", "ApplyVDNH3"],
+  "outputMapping": {"nodeId": "15", "input": "filename_prefix"},
+  "remoteOutputPrefix": "video/rcm/vdn-h3-bf16-8step"
+}

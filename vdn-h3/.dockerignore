@@ -1,0 +1,10 @@
+**
+!Dockerfile
+!.dockerignore
+!README.md
+!models.lock.json
+!scripts/
+!scripts/download_models.py
+!scripts/smoke_nodes.py
+!workflows/
+!workflows/*.json

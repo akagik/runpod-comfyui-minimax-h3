@@ -1,0 +1,46 @@
+# Installed under .github/workflows/ on the dedicated branch of the existing
+# public akagik/runpod-comfyui-minimax-h3 repo. No private request/media is copied.
+name: Publish VDN H3 8-step
+on:
+  push:
+    branches: [vdn-h3-20260913]
+    paths: [vdn-h3/**, .github/workflows/publish-vdn.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+  packages: write
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Source checks
+        run: |
+          python3 -m unittest discover -s vdn-h3/tests -v
+          python3 -m json.tool vdn-h3/models.lock.json >/dev/null
+          test ! -d vdn-h3/requests
+          test ! -d vdn-h3/outputs
+          df -h .
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build, CPU smoke, and publish
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ./vdn-h3
+          platforms: linux/amd64
+          push: true
+          tags: ghcr.io/akagik/runpod-comfyui-minimax-h3:vdn-h3-0.1.0
+          labels: org.opencontainers.image.source=https://github.com/akagik/runpod-comfyui-minimax-h3
+          provenance: mode=max
+      - name: Verify remote manifest
+        env:
+          VDN_IMAGE: ghcr.io/akagik/runpod-comfyui-minimax-h3@${{ steps.build.outputs.digest }}
+        run: |
+          docker buildx imagetools inspect "$VDN_IMAGE"
+          echo "$VDN_IMAGE" >> "$GITHUB_STEP_SUMMARY"

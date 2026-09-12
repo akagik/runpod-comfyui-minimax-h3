@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-12T23:08:15.106Z",
+  "totalBytes": 129064802960,
+  "files": [
+    {
+      "repo": "Comfy-Org/MiniMax-H3",
+      "revision": "a98869194787969724c7425d95d0ed73ce9202af",
+      "source": "diffusion_models/minimax_h3_fl2va_bf16.safetensors",
+      "path": "diffusion_models/minimax_h3_fl2va_bf16.safetensors",
+      "bytes": 66280487368,
+      "sha256": "907d4add438438ec1544f5240c3b38532ed934fe6be75677a6bbda2a6fdd6182",
+      "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/a98869194787969724c7425d95d0ed73ce9202af/diffusion_models/minimax_h3_fl2va_bf16.safetensors"
+    },
+    {
+      "repo": "Comfy-Org/MiniMax-H3",
+      "revision": "a98869194787969724c7425d95d0ed73ce9202af",
+      "source": "text_encoders/qwen3vl_32b_minimax_h3_bf16.safetensors",
+      "path": "text_encoders/qwen3vl_32b_minimax_h3_bf16.safetensors",
+      "bytes": 51506295256,
+      "sha256": "600d567f6a9629c8574e8e7041b199bdd9c59a986afa7906910a81919610607d",
+      "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/a98869194787969724c7425d95d0ed73ce9202af/text_encoders/qwen3vl_32b_minimax_h3_bf16.safetensors"
+    },
+    {
+      "repo": "Comfy-Org/MiniMax-H3",
+      "revision": "a98869194787969724c7425d95d0ed73ce9202af",
+      "source": "vae/minimax_h3_audio_vae_fp32.safetensors",
+      "path": "vae/minimax_h3_audio_vae_fp32.safetensors",
+      "bytes": 605254808,
+      "sha256": "8e505d95dd1561d47abd43d4238fd40d9bb1ae9e147ed0a4cba778d76ae4db48",
+      "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/a98869194787969724c7425d95d0ed73ce9202af/vae/minimax_h3_audio_vae_fp32.safetensors"
+    },
+    {
+      "repo": "Comfy-Org/MiniMax-H3",
+      "revision": "a98869194787969724c7425d95d0ed73ce9202af",
+      "source": "vae/minimax_h3_video_vae_fp16.safetensors",
+      "path": "vae/minimax_h3_video_vae_fp16.safetensors",
+      "bytes": 5207808496,
+      "sha256": "7c1f131492e7eddacaac9069a61b81bdd39de5cc96561e677c5eab1cdce5e522",
+      "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/a98869194787969724c7425d95d0ed73ce9202af/vae/minimax_h3_video_vae_fp16.safetensors"
+    },
+    {
+      "repo": "OpenVDN/vdn-minimax-h3",
+      "revision": "51eeecefdb5b524c0df5539446d1dd54a17aa439",
+      "source": "stage-dmd-step-250/adapters/default/adapter_model.safetensors",
+      "path": "vdn/stage-dmd-step-250/adapters/default/adapter_model.safetensors",
+      "bytes": 334026912,
+      "sha256": "58558fef506f88bb41649242de9b9b3a365da806b51b2e96afbbe1625222058a",
+      "url": "https://huggingface.co/OpenVDN/vdn-minimax-h3/resolve/51eeecefdb5b524c0df5539446d1dd54a17aa439/stage-dmd-step-250/adapters/default/adapter_model.safetensors"
+    },
+    {
+      "repo": "OpenVDN/vdn-minimax-h3",
+      "revision": "51eeecefdb5b524c0df5539446d1dd54a17aa439",
+      "source": "stage-dmd-step-250/adapters/default/adapter_spec.json",
+      "path": "vdn/stage-dmd-step-250/adapters/default/adapter_spec.json",
+      "bytes": 415,
+      "sha256": "89e0ff8920b9629b826eb99ab6150cce6924a53aa445186d1b493225fd091b96",
+      "url": "https://huggingface.co/OpenVDN/vdn-minimax-h3/resolve/51eeecefdb5b524c0df5539446d1dd54a17aa439/stage-dmd-step-250/adapters/default/adapter_spec.json"
+    },
+    {
+      "repo": "OpenVDN/vdn-minimax-h3",
+      "revision": "51eeecefdb5b524c0df5539446d1dd54a17aa439",
+      "source": "stage-dmd-step-250/adapters/turbo/adapter_model.safetensors",
+      "path": "vdn/stage-dmd-step-250/adapters/turbo/adapter_model.safetensors",
+      "bytes": 851452696,
+      "sha256": "24fc93c82fe84dc45d0627f4e72c637bc387d282ba18f60ed3b7f8c81089392c",
+      "url": "https://huggingface.co/OpenVDN/vdn-minimax-h3/resolve/51eeecefdb5b524c0df5539446d1dd54a17aa439/stage-dmd-step-250/adapters/turbo/adapter_model.safetensors"
+    },
+    {
+      "repo": "OpenVDN/vdn-minimax-h3",
+      "revision": "51eeecefdb5b524c0df5539446d1dd54a17aa439",
+      "source": "stage-dmd-step-250/adapters/turbo/adapter_spec.json",
+      "path": "vdn/stage-dmd-step-250/adapters/turbo/adapter_spec.json",
+      "bytes": 22264,
+      "sha256": "627968f670747c29cd7a0d3f8c75166e501d70f9e829b5cd3242a8f14cefbc18",
+      "url": "https://huggingface.co/OpenVDN/vdn-minimax-h3/resolve/51eeecefdb5b524c0df5539446d1dd54a17aa439/stage-dmd-step-250/adapters/turbo/adapter_spec.json"
+    },
+    {
+      "repo": "OpenVDN/vdn-minimax-h3",
+      "revision": "51eeecefdb5b524c0df5539446d1dd54a17aa439",
+      "source": "stage-dmd-step-250/linear_branch/config.json",
+      "path": "vdn/stage-dmd-step-250/linear_branch/config.json",
+      "bytes": 465,
+      "sha256": "decb06ac7e664610f677fb445318502b3c51f9c1b8603a2cdd00b16042be5bc8",
+      "url": "https://huggingface.co/OpenVDN/vdn-minimax-h3/resolve/51eeecefdb5b524c0df5539446d1dd54a17aa439/stage-dmd-step-250/linear_branch/config.json"
+    },
+    {
+      "repo": "OpenVDN/vdn-minimax-h3",
+      "revision": "51eeecefdb5b524c0df5539446d1dd54a17aa439",
+      "source": "stage-dmd-step-250/linear_branch/model.safetensors",
+      "path": "vdn/stage-dmd-step-250/linear_branch/model.safetensors",
+      "bytes": 4279428112,
+      "sha256": "dec6981c7874f5b3bc92d1a02e256b673a3b3499dc1a124714bb3b19da602855",
+      "url": "https://huggingface.co/OpenVDN/vdn-minimax-h3/resolve/51eeecefdb5b524c0df5539446d1dd54a17aa439/stage-dmd-step-250/linear_branch/model.safetensors"
+    },
+    {
+      "repo": "OpenVDN/vdn-minimax-h3",
+      "revision": "51eeecefdb5b524c0df5539446d1dd54a17aa439",
+      "source": "stage-dmd-step-250/metadata.json",
+      "path": "vdn/stage-dmd-step-250/metadata.json",
+      "bytes": 463,
+      "sha256": "54054ceb1c91b3fdf7fa0278e4a8841c127e8cf666b5e240d69613661f9d3e9e",
+      "url": "https://huggingface.co/OpenVDN/vdn-minimax-h3/resolve/51eeecefdb5b524c0df5539446d1dd54a17aa439/stage-dmd-step-250/metadata.json"
+    },
+    {
+      "repo": "OpenVDN/vdn-minimax-h3",
+      "revision": "51eeecefdb5b524c0df5539446d1dd54a17aa439",
+      "source": "stage-dmd-step-250/model_spec.json",
+      "path": "vdn/stage-dmd-step-250/model_spec.json",
+      "bytes": 25705,
+      "sha256": "4171f4384e952f1f73467981a893440c03298af4956b947e2c8a857ba9f5a62b",
+      "url": "https://huggingface.co/OpenVDN/vdn-minimax-h3/resolve/51eeecefdb5b524c0df5539446d1dd54a17aa439/stage-dmd-step-250/model_spec.json"
+    }
+  ]
+}
