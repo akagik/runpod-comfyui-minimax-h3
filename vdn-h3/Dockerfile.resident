@@ -1,0 +1,11 @@
+# syntax=docker/dockerfile:1.7
+# Add only lifecycle/measurement code. No dependency/model/precision changes.
+FROM ghcr.io/akagik/runpod-comfyui-minimax-h3:vdn-h3-0.1.0@sha256:c6eaba23b45f3be056685c66fca619a35a4b2ab506fd540e2a9c05e067044809
+LABEL org.opencontainers.image.version="vdn-h3-0.1.1" \
+      org.opencontainers.image.source="https://github.com/akagik/runpod-comfyui-minimax-h3"
+COPY --chmod=755 resident/start.sh /opt/vdn-h3/resident/start.sh
+COPY resident/__init__.py /opt/ComfyUI-vdn/custom_nodes/VDN-H3-Resident/__init__.py
+COPY workflows/minimax-h3-i2va-vdn-bf16-8step-v2.json /opt/vdn-h3/workflows/
+ENV VDN_RESIDENT=1
+ENTRYPOINT ["/usr/bin/tini", "--", "/opt/vdn-h3/resident/start.sh"]
+CMD []
