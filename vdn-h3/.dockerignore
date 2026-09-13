@@ -1,5 +1,6 @@
 **
 !Dockerfile
+!Dockerfile.resident
 !.dockerignore
 !README.md
 !models.lock.json
@@ -8,3 +9,6 @@
 !scripts/smoke_nodes.py
 !workflows/
 !workflows/*.json
+!resident/
+!resident/start.sh
+!resident/__init__.py
