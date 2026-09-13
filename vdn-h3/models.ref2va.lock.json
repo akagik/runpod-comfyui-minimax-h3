@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "totalBytes": 66280487368,
+  "description": "Supplement to models.lock.json: full BF16 Ref2VA base, not a quantized/pruned substitute.",
+  "files": [
+    {
+      "repo": "Comfy-Org/MiniMax-H3",
+      "revision": "a98869194787969724c7425d95d0ed73ce9202af",
+      "source": "diffusion_models/minimax_h3_ref2va_bf16.safetensors",
+      "path": "diffusion_models/minimax_h3_ref2va_bf16.safetensors",
+      "bytes": 66280487368,
+      "sha256": "e32c54c1a7b4f5f397f195cea267ccb18806303bb665678c4bee60953bdf3026",
+      "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/a98869194787969724c7425d95d0ed73ce9202af/diffusion_models/minimax_h3_ref2va_bf16.safetensors"
+    }
+  ]
+}

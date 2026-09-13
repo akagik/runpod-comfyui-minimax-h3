@@ -1,0 +1,18 @@
+# syntax=docker/dockerfile:1.7
+# Models, CUDA, Python dependencies, sampler and resident guard are unchanged.
+FROM ghcr.io/akagik/runpod-comfyui-minimax-h3:vdn-h3-0.1.1@sha256:270eb4c2c2634f061a780039856c53ac56482a802df5d948c6d57a136550f80d
+LABEL org.opencontainers.image.version="vdn-h3-0.1.2" \
+      org.opencontainers.image.source="https://github.com/akagik/runpod-comfyui-minimax-h3"
+COPY --link scripts/bootstrap_models.py /opt/vdn-h3/scripts/bootstrap_models.py
+COPY --link scripts/smoke_bootstrap.py /opt/vdn-h3/scripts/smoke_bootstrap.py
+COPY --link models.lock.json models.ref2va.lock.json /opt/vdn-h3/
+COPY --link --chmod=755 resident/start-auto.sh /opt/vdn-h3/resident/start-auto.sh
+COPY --link AUTO_MODELS.md /opt/vdn-h3/AUTO_MODELS.md
+ENV VDN_MODEL_PROFILE=i2va MODEL_AUTO_DOWNLOAD=1 VDN_ACCEPT_MODEL_LICENSE=0
+RUN /opt/comfyui-venv/bin/python -m py_compile /opt/vdn-h3/scripts/bootstrap_models.py \
+    && /opt/comfyui-venv/bin/python /opt/vdn-h3/scripts/bootstrap_models.py --profile both --list >/dev/null \
+    && bash -n /opt/vdn-h3/resident/start-auto.sh
+RUN --mount=type=tmpfs,target=/workspace \
+    /opt/comfyui-venv/bin/python /opt/vdn-h3/scripts/smoke_bootstrap.py
+ENTRYPOINT ["/usr/bin/tini", "--", "/opt/vdn-h3/resident/start-auto.sh"]
+CMD []

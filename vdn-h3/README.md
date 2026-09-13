@@ -1,5 +1,13 @@
 # VDN-H3 8-step / RunPod ComfyUI
 
+## Startup model provisioning (0.1.2)
+
+See [AUTO_MODELS.md](AUTO_MODELS.md) for the new pinned, missing-only model
+bootstrap and required template settings. It inherits the 0.1.1 resident image,
+checks mounted storage and contractual capacity, and gates ComfyUI startup on
+verification. It does not change inference settings or restart existing Pods.
+The original 0.1.0 instructions below are historical.
+
 ## Status and boundaries
 
 Prepared 2026-09-13. See `VERIFICATION.md` for actual completed checks.

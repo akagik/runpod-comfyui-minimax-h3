@@ -19,6 +19,7 @@ jobs:
         run: |
           python3 -m unittest discover -s vdn-h3/tests -v
           python3 -m json.tool vdn-h3/models.lock.json >/dev/null
+          python3 -m json.tool vdn-h3/models.ref2va.lock.json >/dev/null
           test ! -d vdn-h3/requests
           test ! -d vdn-h3/outputs
           df -h .
@@ -33,10 +34,10 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./vdn-h3
-          file: ./vdn-h3/Dockerfile.resident
+          file: ./vdn-h3/Dockerfile.autoboot
           platforms: linux/amd64
           push: true
-          tags: ghcr.io/akagik/runpod-comfyui-minimax-h3:vdn-h3-0.1.1
+          tags: ghcr.io/akagik/runpod-comfyui-minimax-h3:vdn-h3-0.1.2
           labels: org.opencontainers.image.source=https://github.com/akagik/runpod-comfyui-minimax-h3
           provenance: mode=max
       - name: Verify remote manifest
