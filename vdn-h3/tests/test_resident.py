@@ -58,6 +58,40 @@ class ResidentContractTests(unittest.TestCase):
         graph['4']['inputs']['weight_dtype'] = 'fp8_e4m3fn'
         self.assertNotEqual(baseline, signature(graph))
 
+    def test_model_switch_is_enabled_only_for_both_or_explicit_opt_in(self):
+        tree = ast.parse((ROOT / 'resident/__init__.py').read_text())
+        selected = [n for n in tree.body if
+                    (isinstance(n, ast.FunctionDef) and n.name == 'model_switch_allowed')
+                    or (isinstance(n, ast.Assign) and any(
+                        isinstance(t, ast.Name) and t.id == 'SWITCH_TRUE_VALUES'
+                        for t in n.targets))]
+        namespace = {'os': __import__('os')}
+        exec(compile(ast.Module(body=selected, type_ignores=[]), 'switch-policy', 'exec'), namespace)
+        allowed = namespace['model_switch_allowed']
+        self.assertTrue(allowed({'VDN_MODEL_PROFILE': 'both'}))
+        self.assertFalse(allowed({'VDN_MODEL_PROFILE': 'i2va'}))
+        self.assertFalse(allowed({'VDN_MODEL_PROFILE': 'ref2va'}))
+        self.assertTrue(allowed({'VDN_MODEL_PROFILE': 'i2va', 'VDN_ALLOW_MODEL_SWITCH': '1'}))
+        self.assertFalse(allowed({'VDN_MODEL_PROFILE': 'both', 'VDN_ALLOW_MODEL_SWITCH': '0'}))
+
+    def test_model_switch_unload_requires_an_empty_queue(self):
+        tree = ast.parse((ROOT / 'resident/__init__.py').read_text())
+        selected = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'queue_is_empty']
+        namespace = {}
+        exec(compile(ast.Module(body=selected, type_ignores=[]), 'queue-policy', 'exec'), namespace)
+        queue_is_empty = namespace['queue_is_empty']
+
+        class Queue:
+            def __init__(self, running, queued):
+                self.value = (running, queued)
+
+            def get_current_queue(self):
+                return self.value
+
+        self.assertTrue(queue_is_empty(Queue([], [])))
+        self.assertFalse(queue_is_empty(Queue([object()], [])))
+        self.assertFalse(queue_is_empty(Queue([], [object()])))
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -18,6 +18,20 @@ from server import PromptServer
 
 STATE = {"generation_started": False, "sampler_runs": 0, "loader_signature": None}
 LOADER_CLASSES = {"UNETLoader", "CLIPLoader", "VAELoader", "ApplyVDNH3"}
+SWITCH_TRUE_VALUES = {"1", "true", "yes", "on"}
+
+
+def model_switch_allowed(env=None):
+    source = os.environ if env is None else env
+    explicit = source.get("VDN_ALLOW_MODEL_SWITCH")
+    if explicit is not None:
+        return explicit.strip().lower() in SWITCH_TRUE_VALUES
+    return source.get("VDN_MODEL_PROFILE", "").strip().lower() == "both"
+
+
+def queue_is_empty(prompt_queue):
+    running, queued = prompt_queue.get_current_queue()
+    return not running and not queued
 
 
 def loader_signature(prompt):
@@ -37,7 +51,8 @@ def snapshot():
                            "loaded_bytes": int(patcher.loaded_size()),
                            "total_bytes": int(patcher.model_size())})
     return {"pid": os.getpid(), "sampler_runs": STATE["sampler_runs"],
-            "unload_protected": STATE["generation_started"], "models": models,
+            "unload_protected": STATE["generation_started"],
+            "model_switch_enabled": model_switch_allowed(), "models": models,
             "cuda_allocated_bytes": torch.cuda.memory_allocated() if torch.cuda.is_available() else 0}
 
 
@@ -86,8 +101,19 @@ class VDNH3ResidentSampler(SamplerCustomAdvanced):
 @web.middleware
 async def resident_guard(request, handler):
     if request.method == "POST" and request.path == "/free" and STATE["generation_started"]:
-        record("unload_request_blocked")
-        return web.json_response({"error": "VDN resident is protected; unloading requires an explicitly approved restart."}, status=409)
+        if not model_switch_allowed():
+            record("unload_request_blocked")
+            return web.json_response({"error": "VDN resident is protected; model switching is not enabled."}, status=409)
+        if not queue_is_empty(PromptServer.instance.prompt_queue):
+            record("model_switch_unload_rejected_busy")
+            return web.json_response({"error": "VDN model switching requires an empty queue."}, status=409)
+        previous_signature = STATE["loader_signature"]
+        response = await handler(request)
+        if response.status < 300:
+            STATE["generation_started"] = False
+            STATE["loader_signature"] = None
+            record("model_switch_unload_requested", previous_loader_signature=previous_signature)
+        return response
     if request.method == "POST" and request.path == "/prompt":
         body = await request.json()
         prompt = body.get("prompt", {})
@@ -95,7 +121,10 @@ async def resident_guard(request, handler):
         if not any(node.get("class_type") == "VDNH3ResidentSampler" for node in prompt.values()):
             return web.json_response({"error": "This resident worker requires the VDN resident workflow."}, status=409)
         if STATE["loader_signature"] is not None and signature != STATE["loader_signature"]:
-            return web.json_response({"error": "Resident loader configuration is locked; model switching requires approval."}, status=409)
+            message = ("Release the current model through /free while the queue is empty before switching."
+                       if model_switch_allowed()
+                       else "Resident loader configuration is locked; model switching is not enabled.")
+            return web.json_response({"error": message}, status=409)
         response = await handler(request)
         if response.status < 300:
             STATE["loader_signature"] = signature
@@ -117,5 +146,6 @@ async def comfy_entrypoint():
         async def resident_status(request):
             return web.json_response(snapshot())
 
-        logging.info("VDN resident guard installed; no automatic model unloading")
+        logging.info("VDN resident guard installed; model_switch_enabled=%s",
+                     model_switch_allowed())
     return VDNResidentExtension()

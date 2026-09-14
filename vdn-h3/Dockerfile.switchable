@@ -1,0 +1,9 @@
+# syntax=docker/dockerfile:1.7
+# Allow Manager-orchestrated I2VA/Ref2VA switching only for the `both` profile.
+# Model files, inference settings, precision, sampler and startup bootstrap stay unchanged.
+FROM --platform=linux/amd64 ghcr.io/akagik/runpod-comfyui-minimax-h3:vdn-h3-0.1.2@sha256:a72b1bb3b9bfc694eefd9fd23b618c42754b475898eb1990dfea6c471d5ff029
+LABEL org.opencontainers.image.version="vdn-h3-0.1.3" \
+      org.opencontainers.image.source="https://github.com/akagik/runpod-comfyui-minimax-h3"
+COPY --link resident/__init__.py /opt/ComfyUI-vdn/custom_nodes/VDN-H3-Resident/__init__.py
+RUN /opt/comfyui-venv/bin/python -m py_compile \
+      /opt/ComfyUI-vdn/custom_nodes/VDN-H3-Resident/__init__.py
