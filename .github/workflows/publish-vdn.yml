@@ -4,7 +4,12 @@ name: Publish VDN H3 8-step
 on:
   push:
     branches: [vdn-h3-20260913]
-    paths: [vdn-h3/**, .github/workflows/publish-vdn.yml]
+    # README.md is not copied into the image, so documentation-only edits must
+    # not republish the tag and move its digest.
+    paths:
+      - vdn-h3/**
+      - '!vdn-h3/README.md'
+      - .github/workflows/publish-vdn.yml
   workflow_dispatch:
 permissions:
   contents: read
