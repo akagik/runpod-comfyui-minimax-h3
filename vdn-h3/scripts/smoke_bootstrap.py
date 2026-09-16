@@ -25,6 +25,15 @@ options = dict(capacity=2_000_000_000, reserve=100_000_000, accept_license=True)
 b.provision(volume, files, **options)
 assert (volume / "models" / files[0]["path"]).stat().st_size == 415
 
+# One template has to serve a Volume of any size, so the same provisioning must
+# succeed with no contracted capacity at all, judged from the filesystem alone.
+unsized = volume / "unsized-volume"
+unsized.mkdir()
+b.provision(unsized, files, reserve=100_000_000, accept_license=True, require_mount=False)
+assert (unsized / "models" / files[0]["path"]).stat().st_size == 415
+assert json.loads((unsized / "model-bootstrap/status.json").read_text())["phase"] == "MODELS_READY"
+
+
 def no_network(*args):
     raise AssertionError("Restart must not access network")
 
@@ -35,4 +44,4 @@ b.sha256 = no_hash
 b.provision(volume, files, downloader=no_network, **options)
 status = json.loads((volume / "model-bootstrap/status.json").read_text())
 assert status["phase"] == "MODELS_READY" and status["downloaded_files"] == 0
-print("CPU_HF_SMOKE_PASS: 415-byte download/SHA256/atomic install/offline reuse")
+print("CPU_HF_SMOKE_PASS: 415-byte download/SHA256/atomic install/offline reuse/unsized Volume")

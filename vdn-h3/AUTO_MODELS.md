@@ -1,9 +1,9 @@
-# VDN-H3 0.1.2: 起動時の不足モデル自動準備
+# VDN-H3 0.1.4: 起動時の不足モデル自動準備
 
 ## 何が変わるか
 
 `SSH起動 → /workspaceのmount確認 → 索引照合 → 不足分DL → SHA256確認 → resident ComfyUI起動`。
-既存0.1.1のGPU常駐保護・モデル・精度・ComfyUI・依存関係・samplerは変えない。
+既存0.1.3のGPU常駐保護・モデル・精度・ComfyUI・依存関係・sampler・resident切替は変えない。
 モデルはDocker imageに含めず、`/workspace/models`へ置く。
 Network Volume、Pod volume diskのどちらも使えるが、後者はPod削除時には残らない。
 モデルの自動準備はManagerのジョブ投入前に完了する。自動生成・workflow登録はしない。
@@ -16,12 +16,14 @@ RUNPOD_VOLUME_ROOT=/workspace
 REQUIRE_MINIMAX_MODELS=false
 VDN_MODEL_PROFILE=i2va
 MODEL_AUTO_DOWNLOAD=1
-MODEL_VOLUME_CAPACITY_GB=200
 VDN_ACCEPT_MODEL_LICENSE=1
 ```
 
-`MODEL_VOLUME_CAPACITY_GB`は**実際に契約したVolume容量（十進GB）を設定する必須値**。
-値を増やしても契約容量は増えない。ライセンス条件・利用資格を確認した利用者のみ
+`MODEL_VOLUME_CAPACITY_GB`は**任意**。0.1.4以降、templateの固定envには含めない。
+設定した場合だけ、その十進GBを契約容量とみなす追加の上限判定を行う。値を増やしても
+契約容量は増えない。Managerは接続するNetwork Volumeの実容量、またはPod volumeのサイズを
+知っているためPod作成時にこの値を注入する。Web Consoleから起動する場合は未設定でよい。
+ライセンス条件・利用資格を確認した利用者のみ
 `VDN_ACCEPT_MODEL_LICENSE=1`を設定する（公開imageの既定値は0）。必要ならHF読み取り
 トークンをRunPodのSecret経由で渡す。トークンをDockerfile、文書、公開Templateへ埋め込まない。
 SSHはRunPod経由の公開鍵設定、portsは22/tcpと8188/http、起動コマンドはimage既定を使う。
@@ -32,15 +34,26 @@ SSHはRunPod経由の公開鍵設定、portsは22/tcpと8188/http、起動コマ
 | `ref2va` | Ref2VA full BF16本体 + 共通encoder/VAE/VDN | 129.06 GB / 12ファイル |
 | `both` | 両本体 + 共通部分を重複なしで | 195.35 GB / 13ファイル |
 
-既存の別profile用モデルは**削除しない**。200GBにI2VAがある状態でRef2VAを追加すると、
+既存の別profile用モデルは**削除しない**。I2VAがある状態でRef2VAを追加すると、
 モデルだけで195.35GBになる。10GB安全余裕を確保できない場合はDLせず停止する。
 両方を常置する新規構成は、出力・キャッシュ分を含め300GB程度を検討する。
 容量変更・新規課金・既存モデル削除は別途承認が必要。
 
-`/workspace`の`df`は共有MFS全体の巨大な空き容量を表示することがある。
-スクリプトは契約容量からVolume内実ファイルの論理サイズを引いた推定値と、`df`の小さい方で判定。
-同時に書く別プログラムやストレージ側snapshotまでは把握できないため、残量保証ではない。
-DL途中の容量不足も生成受付前の失敗として扱う。自動拡張はしない。
+## 容量判定
+
+`/workspace`の`df`は共有MFS全体の巨大な空き容量を表示することがある。つまり`df`は
+「足りない」ことは確実に示せるが、「足りる」ことは保証しない。0.1.4はこの性質に合わせ、
+容量を事前に断定せず次の順で扱う。
+
+1. `df`の空きが必要量+10GBに満たなければ、DL前に停止する。
+2. `MODEL_VOLUME_CAPACITY_GB`が設定されていれば、`契約容量 - Volume内実ファイルの論理サイズ`
+   を追加の上限として併用する。この全体走査は1起動につき1回だけ行い、以降は自分が設置した
+   bytesを加算して追跡する（共有Volumeはファイル数が多く、都度の再走査は起動を遅くする）。
+3. 書込み中に実際に容量が尽きた場合（ENOSPC）は、**自分のstagingだけ**を削除して失敗する。
+   既存モデル・他のデータには触れず、ComfyUIも起動しない。
+
+これにより、容量の異なるNetwork Volumeを同一templateで扱える。同時に書く別プログラムや
+ストレージ側snapshotまでは把握できないため、いずれの判定も残量保証ではない。自動拡張はしない。
 
 ## 索引と再利用
 
@@ -91,11 +104,12 @@ Ref2VAのworkflow・品質/GPU動作は、別の実生成テストで確認す�
 
 ```bash
 python3 -m unittest discover -s tests -v
-docker buildx build --platform linux/amd64 -f Dockerfile.autoboot \
-  -t ghcr.io/akagik/runpod-comfyui-minimax-h3:vdn-h3-0.1.2 --load .
+docker buildx build --platform linux/amd64 -f Dockerfile.anyvolume \
+  -t ghcr.io/akagik/runpod-comfyui-minimax-h3:vdn-h3-0.1.4 --load .
 ```
 
-unit testsは既存再利用/全hash/不足のみDL/途中失敗再開/容量/mount/lock/競合上書き防止を検証。
+unit testsは既存再利用/全hash/不足のみDL/途中失敗再開/容量（容量指定あり・なし両方）/
+ENOSPC時のstaging破棄/mount/lock/競合上書き防止を検証。
 ローカルCPUテストと実際のRunPod MFSでの全量起動テストは区別する。
 公開に含めるのは汎用script・固定索引・テスト・本文書のみ。個人の画像/プロンプト/出力は含めない。
 

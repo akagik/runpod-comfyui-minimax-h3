@@ -1,4 +1,5 @@
 import contextlib
+import errno
 import hashlib
 import importlib.util
 import io
@@ -101,10 +102,100 @@ class BootstrapTests(unittest.TestCase):
                 self.run_boot(require_mount=True)
         self.assertEqual(list(self.volume.iterdir()), [])
 
-    def test_capacity_required(self):
-        with self.assertRaisesRegex(b.BootstrapError, "CAPACITY"):
+    def test_unknown_capacity_provisions_without_a_contracted_size(self):
+        with mock.patch.object(b, "volume_usage", side_effect=AssertionError("scan")):
             self.run_boot(capacity=0)
-        self.assertEqual(list(self.volume.iterdir()), [])
+        self.assertEqual(self.calls, [self.f["path"]])
+        status = json.loads((self.volume / "model-bootstrap/status.json").read_text())
+        self.assertEqual(status["phase"], "MODELS_READY")
+
+    def test_unknown_capacity_still_refuses_a_full_filesystem(self):
+        with mock.patch.object(b.shutil, "disk_usage", return_value=mock.Mock(free=0)):
+            with self.assertRaisesRegex(b.BootstrapError, "Insufficient Volume"):
+                self.run_boot(capacity=0)
+        self.assertEqual(self.calls, [])
+
+    def test_capacity_env_is_optional_and_validated(self):
+        self.assertEqual(b.capacity_bytes(None), 0)
+        self.assertEqual(b.capacity_bytes("  "), 0)
+        self.assertEqual(b.capacity_bytes("300"), 300_000_000_000)
+        with self.assertRaisesRegex(b.BootstrapError, "whole number"):
+            b.capacity_bytes("300GB")
+
+    def test_out_of_space_discards_only_our_staging(self):
+        keeper = self.volume / "models/keep.bin"
+        keeper.parent.mkdir()
+        keeper.write_bytes(b"user data")
+
+        def full(f, stage):
+            (stage / "partial.incomplete").write_bytes(b"x" * 8)
+            raise OSError(errno.ENOSPC, "No space left on device")
+
+        with self.assertRaisesRegex(b.BootstrapError, "Out of space"):
+            self.run_boot(capacity=0, downloader=full)
+        self.assertFalse(b.stage_for(self.volume / "model-bootstrap", self.f).exists())
+        self.assertEqual(keeper.read_bytes(), b"user data")
+        self.assertFalse((self.volume / "models" / self.f["path"]).exists())
+
+    def test_wrapped_out_of_space_is_recognised_without_leaking_the_message(self):
+        def wrapped(f, stage):
+            try:
+                raise OSError(errno.ENOSPC, "No space left on device")
+            except OSError as cause:
+                raise RuntimeError("secret-token=DO-NOT-LOG") from cause
+
+        with self.assertRaisesRegex(b.BootstrapError, "Out of space"):
+            self.run_boot(capacity=0, downloader=wrapped)
+        self.assertNotIn("DO-NOT-LOG", (self.volume / "model-bootstrap/status.json").read_text())
+
+    def test_shared_volume_is_scanned_once_per_run(self):
+        contents = {f"diffusion_models/m{i}.bin": b"weight-%d" % i for i in range(3)}
+        files = [record(path, data) for path, data in contents.items()]
+
+        def write(f, stage):
+            self.calls.append(f["path"])
+            target = stage / f["source"]
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(contents[f["path"]])
+            return target
+
+        with mock.patch.object(b, "volume_usage", wraps=b.volume_usage) as scan:
+            self.run_boot(files=files, downloader=write)
+        self.assertEqual(len(self.calls), 3)
+        self.assertEqual(scan.call_count, 1)
+
+    def test_supplied_usage_is_trusted_instead_of_rescanning(self):
+        state = self.volume / "model-bootstrap"
+        state.mkdir()
+        with mock.patch.object(b, "volume_usage", side_effect=AssertionError("rescan")):
+            b.check_capacity(self.volume, state, [self.f], 1000, 100, usage=800)
+            with self.assertRaisesRegex(b.BootstrapError, "used=900"):
+                b.check_capacity(self.volume, state, [self.f], 1000, 100, usage=900)
+
+    def test_each_install_advances_the_tracked_usage_by_its_own_bytes(self):
+        contents = {"diffusion_models/m0.bin": b"a" * 100, "diffusion_models/m1.bin": b"b" * 100}
+        files = [record(path, data) for path, data in contents.items()]
+
+        def write(f, stage):
+            self.calls.append(f["path"])
+            target = stage / f["source"]
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(contents[f["path"]])
+            return target
+
+        seen = []
+        real = b.check_capacity
+
+        def spy(volume, state, subset, capacity, reserve, usage=None):
+            seen.append(usage)
+            return real(volume, state, subset, capacity, reserve, usage)
+
+        with mock.patch.object(b, "check_capacity", spy):
+            self.run_boot(files=files, downloader=write)
+        self.assertEqual(len(self.calls), 2)
+        # Pre-loop check, then one per file; only the installed file moves it.
+        self.assertEqual(seen[0], seen[1])
+        self.assertEqual(seen[2], seen[1] + 100)
 
     def test_unsafe_manifest_and_conflicts(self):
         for value in ("../outside", "/outside", ".cache/outside", "a/../../outside"):
@@ -200,6 +291,14 @@ class BootstrapTests(unittest.TestCase):
                                  "--profile", "both", "--list"], capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(len(json.loads(result.stdout)["files"]), 13)
+
+    def test_any_volume_layer_pins_its_base_and_keeps_the_smoke(self):
+        dockerfile = (ROOT / "Dockerfile.anyvolume").read_text()
+        self.assertIn("vdn-h3-0.1.3@sha256:9d71db17", dockerfile)
+        self.assertIn('org.opencontainers.image.version="vdn-h3-0.1.4"', dockerfile)
+        self.assertIn("smoke_bootstrap.py", dockerfile)
+        self.assertNotIn("pip install", dockerfile)
+        self.assertNotIn("MODEL_VOLUME_CAPACITY_GB", dockerfile)
 
     def test_startup_and_image_keep_resident_contract(self):
         script = (ROOT / "resident/start-auto.sh").read_text()

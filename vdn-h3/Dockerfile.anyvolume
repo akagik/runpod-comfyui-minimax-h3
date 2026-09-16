@@ -1,0 +1,14 @@
+# syntax=docker/dockerfile:1.7
+# Volume capacity is judged at runtime, so one template serves a Network Volume
+# of any size and a Pod volume alike. Models, CUDA, Python dependencies,
+# sampler, resident switching and the startup contract are unchanged.
+FROM --platform=linux/amd64 ghcr.io/akagik/runpod-comfyui-minimax-h3:vdn-h3-0.1.3@sha256:9d71db17cbf72df14d6bcf5a80a64005adec34e9ac124841f12b15da6b8e3c9b
+LABEL org.opencontainers.image.version="vdn-h3-0.1.4" \
+      org.opencontainers.image.source="https://github.com/akagik/runpod-comfyui-minimax-h3"
+COPY --link scripts/bootstrap_models.py /opt/vdn-h3/scripts/bootstrap_models.py
+COPY --link scripts/smoke_bootstrap.py /opt/vdn-h3/scripts/smoke_bootstrap.py
+COPY --link AUTO_MODELS.md /opt/vdn-h3/AUTO_MODELS.md
+RUN /opt/comfyui-venv/bin/python -m py_compile /opt/vdn-h3/scripts/bootstrap_models.py \
+    && /opt/comfyui-venv/bin/python /opt/vdn-h3/scripts/bootstrap_models.py --profile both --list >/dev/null
+RUN --mount=type=tmpfs,target=/workspace \
+    /opt/comfyui-venv/bin/python /opt/vdn-h3/scripts/smoke_bootstrap.py

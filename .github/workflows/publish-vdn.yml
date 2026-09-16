@@ -34,10 +34,10 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./vdn-h3
-          file: ./vdn-h3/Dockerfile.switchable
+          file: ./vdn-h3/Dockerfile.anyvolume
           platforms: linux/amd64
           push: true
-          tags: ghcr.io/akagik/runpod-comfyui-minimax-h3:vdn-h3-0.1.3
+          tags: ghcr.io/akagik/runpod-comfyui-minimax-h3:vdn-h3-0.1.4
           labels: org.opencontainers.image.source=https://github.com/akagik/runpod-comfyui-minimax-h3
           provenance: mode=max
       - name: Verify remote manifest
