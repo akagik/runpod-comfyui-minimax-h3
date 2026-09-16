@@ -1,12 +1,19 @@
 # VDN-H3 8-step / RunPod ComfyUI
 
-## Startup model provisioning (0.1.2)
+## Startup model provisioning (0.1.4)
 
-See [AUTO_MODELS.md](AUTO_MODELS.md) for the new pinned, missing-only model
-bootstrap and required template settings. It inherits the 0.1.1 resident image,
-checks mounted storage and contractual capacity, and gates ComfyUI startup on
-verification. It does not change inference settings or restart existing Pods.
-The original 0.1.0 instructions below are historical.
+See [AUTO_MODELS.md](AUTO_MODELS.md) for the pinned, missing-only model bootstrap
+and the template settings it needs. It inherits the 0.1.3 resident image, checks
+the mounted storage, reuses already-verified models and downloads only what is
+missing.
+
+Since 0.1.4 the free space is judged at runtime, so one template serves a
+Network Volume of any size as well as a plain Pod volume: `df` over-reports on
+RunPod's shared filesystem and can therefore only rule a download out,
+`MODEL_VOLUME_CAPACITY_GB` is an optional stricter check rather than a required
+setting, and a real ENOSPC discards only this bootstrap's own staging, leaving
+installed models untouched. It does not change inference settings or restart
+existing Pods. The original 0.1.0 instructions below are historical.
 
 ## Status and boundaries
 
